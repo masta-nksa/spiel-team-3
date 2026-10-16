@@ -1,0 +1,7 @@
+Hier kommen Bilder (.png) und Töne (.ogg) hin.
+
+Töne im Browser nur als .ogg, nicht als .wav oder .mp3, sonst bricht der Build ab.
+Pfade immer relativ angeben, zum Beispiel:
+
+    bild = pygame.image.load("assets/stern.png").convert_alpha()
+    ton = pygame.mixer.Sound("assets/punkt.ogg")

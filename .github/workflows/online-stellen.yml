@@ -1,0 +1,52 @@
+# Baut das Spiel bei jedem Push auf main mit pygbag für den Browser
+# und stellt es auf GitHub Pages online: https://<konto>.github.io/<repo>/
+# Einmalig nötig: Settings → Pages → Source: "GitHub Actions".
+name: Spiel online stellen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v7
+
+      - name: Python einrichten
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: pygbag installieren
+        run: pip install -r requirements.txt
+
+      - name: Spiel für den Browser bauen
+        run: python -m pygbag --build --title "${{ github.event.repository.name }}" spiel
+
+      - name: Ergebnis hochladen
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: spiel/build/web
+
+  veroeffentlichen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Auf GitHub Pages stellen
+        id: deployment
+        uses: actions/deploy-pages@v5
