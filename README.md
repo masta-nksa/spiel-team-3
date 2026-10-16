@@ -42,6 +42,28 @@ python -m pygbag spiel
 
 Commit, dann Push. Unter **Actions** siehst du, wie das Spiel gebaut wird (etwa 1 Minute).
 Ein grüner Haken heisst: Die neue Version ist online. Ein rotes Kreuz: Klick darauf und lies die Fehlermeldung.
+Siehst du trotz grünem Haken noch die alte Version, hat der Browser sie zwischengespeichert (bis zu 10 Minuten):
+mit `Ctrl+Shift+R` neu laden oder die Seite in einem privaten Fenster öffnen.
+
+## Tutorial: So entsteht das Spiel
+
+Im Ordner [`tutorial/`](tutorial/) liegen vier kleine Programme. Sie bauen das Spiel Schritt für Schritt auf,
+vom leeren Fenster bis zu Stern und Stein. Die Erklärungen und Aufgaben dazu stehen im
+**[Tutorial auf der Website](https://masta-nksa.github.io/schere-stein-papier/beispiele/sternenfaenger/)**.
+
+| Programm | Was du lernst |
+|---|---|
+| `tutorial/schritt1_fenster.py` | Spielschleife und Delta-Time |
+| `tutorial/schritt2_spieler.py` | die erste Klasse: der Spieler |
+| `tutorial/schritt3_sterne.py` | Gruppen, Zeitgeber, Kollision |
+| `tutorial/schritt4_vererbung.py` | Vererbung und Polymorphie |
+
+```bash
+python tutorial/schritt1_fenster.py
+```
+
+Danach ist das Spiel in `spiel/` aufgeteilt (Schritt 5 im Tutorial: Szenen und eigene Dateien).
+Der Ordner `tutorial/` kommt nicht ins Online-Spiel, du kannst ihn behalten oder löschen.
 
 ## Aufbau
 
@@ -52,6 +74,7 @@ Ein grüner Haken heisst: Die neue Version ist online. Ein rotes Kreuz: Klick da
 | `spiel/figuren.py` | Spieler und fallende Objekte (Stern, Stein) |
 | `spiel/einstellungen.py` | Grösse, Tempo, Farben |
 | `spiel/assets/` | deine Bilder und Töne |
+| `tutorial/` | Schritt 1 bis 4 des Tutorials, je ein eigenes Programm |
 | `.github/workflows/online-stellen.yml` | baut das Spiel und stellt es online |
 
 ## Was im Code steckt
