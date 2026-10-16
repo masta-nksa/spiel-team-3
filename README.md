@@ -14,6 +14,18 @@ Einmalig im Terminal von VS Code:
 python -m pip install -r requirements.txt
 ```
 
+Die Vorlage braucht **pygame-ce**, nicht das alte **pygame**. Beide lädt man mit `import pygame`, sie vertragen sich aber nicht
+im selben Python. Beim Start steht im Terminal `pygame-ce 2.5.8 (SDL …)`. Steht dort nur `pygame 2.6…`, oder bricht das
+Spiel mit einem Hinweis ab, zuerst beide entfernen und dann neu installieren:
+
+```bash
+python -m pip uninstall -y pygame pygame-ce
+```
+
+```bash
+python -m pip install -r requirements.txt
+```
+
 Spiel starten:
 
 ```bash

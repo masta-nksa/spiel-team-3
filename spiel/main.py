@@ -10,6 +10,16 @@ import pygame
 import einstellungen as e
 from szenen import MenueSzene
 
+# pygame-ce wird auch mit "import pygame" geladen. Ist stattdessen das alte pygame installiert,
+# laufen manche Dinge anders als im Browser. Darum hier gleich abbrechen.
+if not getattr(pygame, "IS_CE", False):
+    sys.exit(
+        "Hier ist das alte pygame installiert, die Vorlage braucht pygame-ce.\n"
+        "Im Terminal eingeben, eine Zeile nach der anderen:\n"
+        "  python -m pip uninstall -y pygame pygame-ce\n"
+        "  python -m pip install -r requirements.txt"
+    )
+
 if sys.platform != "emscripten":
     # Lokal: im Ordner dieser Datei arbeiten, damit "assets/..." immer gefunden wird,
     # egal von wo aus das Spiel gestartet wird. Im Browser ist das schon so.
