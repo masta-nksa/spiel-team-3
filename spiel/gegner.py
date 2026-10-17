@@ -128,6 +128,7 @@ class Gegner(Kaempfer):
             ziel_y = ziel.y + self.warte_versatz + 25 * math.sin(self.anim_zeit * 0.9)
             ziel_x = max(welt.kamera.x + 40, min(welt.kamera.x + e.BREITE - 40, ziel_x))
 
+        ziel_y = self.umweg(welt, ziel_x, ziel_y)
         self.laufe_zu(ziel_x, ziel_y, langsam=not self.darf_angreifen)
         if dx:
             self.blick = 1 if dx > 0 else -1
@@ -179,6 +180,32 @@ class Gegner(Kaempfer):
         self.rueckzug_richtung = (weg, random.choice((-1, 0, 1)))
         self.rueckzug_dauer = random.uniform(0.35, 0.8)
         self.ki_wechsel("rueckzug")
+
+    def umweg(self, welt, ziel_x, ziel_y):
+        """Steht eine Kiste oder Laterne zwischen mir und dem Ziel, gehe ich oben oder unten herum.
+
+        Gibt das y zurück, das ich ansteuern soll: entweder das echte Ziel
+        oder knapp am Rand des Hindernisses vorbei.
+        """
+        richtung = 1 if ziel_x > self.x else -1
+        for objekt in welt.objekte:
+            box = objekt.koerperbox()
+            if box is None:
+                continue
+            x1, x2, y1, y2 = box
+            mitte = (x1 + x2) / 2
+            vor_mir = 0 < (mitte - self.x) * richtung < 70 + (x2 - x1) / 2
+            ziel_dahinter = (ziel_x - mitte) * richtung > 0
+            auf_meiner_hoehe = y1 - 8 < self.y < y2 + 8
+            if vor_mir and ziel_dahinter and auf_meiner_hoehe:
+                oben, unten = y1 - 16, y2 + 16
+                if oben < e.BODEN_OBEN:
+                    return unten
+                if unten > e.BODEN_UNTEN:
+                    return oben
+                # die Seite nehmen, die näher beim Ziel liegt
+                return oben if abs(ziel_y - oben) < abs(ziel_y - unten) else unten
+        return ziel_y
 
     def stehen_bleiben(self):
         self.vx = gegen_null(self.vx, 900, 1 / 60)

@@ -60,6 +60,7 @@ class Kaempfer:
         self.unverwundbar = 0.0
         self.blitz = 0.0
         self.abgeprallt = False
+        self.treffer_serie = 0  # Treffer hintereinander, ohne sich zu erholen
         self.letzter_angreifer = None
         self.entfernen = False
 
@@ -152,8 +153,11 @@ class Kaempfer:
             richtung = 1 if self.x >= angreifer.x else -1
         self.blick = -richtung  # dreht sich zum Angreifer
         stoss = angriff.rueckstoss / self.gewicht
+        # Wer schon wehrlos ist und weiter getroffen wird, fällt irgendwann um.
+        # So kann niemand endlos in der Trefferstarre gehalten werden.
+        self.treffer_serie = self.treffer_serie + 1 if self.zustand == "getroffen" else 1
 
-        if angriff.wirft_um or self.hp <= 0 or self.z > 0:
+        if angriff.wirft_um or self.hp <= 0 or self.z > 0 or self.treffer_serie >= 4:
             self.wechsle("fallen")
             self.abgeprallt = False
             self.vx = richtung * max(stoss, 150)

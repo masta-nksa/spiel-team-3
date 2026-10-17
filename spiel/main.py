@@ -8,7 +8,10 @@ import sys
 import pygame
 
 import einstellungen as e
+from eingabe import Steuerung, gamepad_ereignis
+from level import Level
 from szenen import MenueSzene
+from ton import Ton
 
 # pygame-ce wird auch mit "import pygame" geladen. Ist stattdessen das alte pygame installiert,
 # laufen manche Dinge anders als im Browser. Darum hier gleich abbrechen.
@@ -29,9 +32,12 @@ if sys.platform != "emscripten":
 class Spiel:
     """Hält das Fenster offen und gibt jedes Bild an die aktuelle Szene weiter.
 
-    Zu jedem Zeitpunkt ist genau eine Szene aktiv (Menü, Spiel oder Game Over).
+    Zu jedem Zeitpunkt ist genau eine Szene aktiv (Menü, Spiel oder Ergebnis).
     Das ist ein Zustandsautomat: Die Szene entscheidet selbst, wann sie zu welcher
     anderen Szene wechselt.
+
+    Was über mehrere Runden erhalten bleibt, liegt hier: Steuerungen, Ton,
+    das fertig gemalte Level und der Rekord.
     """
 
     def __init__(self):
@@ -41,6 +47,10 @@ class Spiel:
         self.uhr = pygame.time.Clock()
         self.laeuft = True
         self.rekord = 0
+        self.debug = False  # F1: Hitboxen anzeigen
+        self.steuerungen = [Steuerung(1, e.TASTEN_P1), Steuerung(2, e.TASTEN_P2)]
+        self.ton = Ton()
+        self.level = Level()  # wird nur einmal gemalt und dann für jede Runde wiederverwendet
         self.szene = MenueSzene(self)
 
     def wechsle_zu(self, szene):
@@ -58,6 +68,8 @@ class Spiel:
             for ereignis in pygame.event.get():
                 if ereignis.type == pygame.QUIT:
                     self.beenden()
+                elif ereignis.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+                    gamepad_ereignis(self.steuerungen, ereignis)
                 else:
                     self.szene.ereignis(ereignis)
 
