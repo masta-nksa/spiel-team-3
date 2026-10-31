@@ -25,6 +25,7 @@ class Objekt:
     blockiert = True
     zerstoerbar = False
     max_hp = 1
+    quelle = None  # Name für die Waffen-Drops (siehe waffen.CHANCEN)
 
     def __init__(self, x, y):
         self.x, self.y, self.z = float(x), float(y), 0.0
@@ -63,6 +64,8 @@ class Objekt:
             beute = self.beute()
             if beute:
                 welt.objekte.append(beute(self.x, self.y))
+            if self.quelle:
+                welt.waffen.wuerfle(self.quelle, self.x + 18, self.y, welt)
         return False
 
     def splitter_farben(self):
@@ -92,6 +95,7 @@ class Objekt:
 class Kiste(Objekt):
     breite, tiefe, hoehe = 46, 12, 44
     zerstoerbar = True
+    quelle = "kiste"
     max_hp = 3
 
     def splitter_farben(self):
@@ -121,6 +125,7 @@ class Kiste(Objekt):
 class Fass(Objekt):
     breite, tiefe, hoehe = 32, 10, 50
     zerstoerbar = True
+    quelle = "fass"
     max_hp = 3
 
     def __init__(self, x, y):
@@ -154,6 +159,7 @@ class Fass(Objekt):
 class Muelltonne(Objekt):
     breite, tiefe, hoehe = 34, 10, 46
     zerstoerbar = True
+    quelle = "tonne"
     max_hp = 2
 
     def splitter_farben(self):

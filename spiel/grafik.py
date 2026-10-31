@@ -59,11 +59,13 @@ def kapsel(flaeche, a, b, r1, farbe, umriss=e.UMRISS, r2=None):
         pygame.draw.circle(flaeche, f, b, rb)
 
 
-def zeichne_figur(flaeche, skin, p, fx, fy, blick, skala=1.0, weiss=False, zeit=0.0):
+def zeichne_figur(flaeche, skin, p, fx, fy, blick, skala=1.0, weiss=False, zeit=0.0, halte=None):
     """Zeichnet eine Figur mit Fusspunkt (fx, fy) in der Pose p.
 
     blick: 1 = schaut nach rechts, -1 = nach links
     weiss: Figur blitzt weiss auf (gerade getroffen)
+    halte: Funktion, die zuletzt (vor allem anderen) etwas in die Hand zeichnet. Sie bekommt
+           (Fläche, vordere Hand, vorderer Ellbogen, hintere Hand, hinterer Ellbogen, Skala) in Bildkoordinaten.
     """
     if p["umdrehen"] > 0.5:
         blick = -blick
@@ -242,6 +244,8 @@ def zeichne_figur(flaeche, skin, p, fx, fy, blick, skala=1.0, weiss=False, zeit=
     bein(huefte, knie_v, fuss_v, p["vh"] - p["vk"], False)
     kopf_zeichnen()
     arm(schulter, ellb_v, hand_v, False)
+    if halte is not None:
+        halte(flaeche, P(hand_v), P(ellb_v), P(hand_h), P(ellb_h), s)
 
 
 # --- Schatten und Spielermarkierung ----------------------------------------------

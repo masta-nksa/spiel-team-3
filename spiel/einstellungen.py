@@ -33,8 +33,16 @@ SPIELER_TEMPO_X = 175  # Pixel pro Sekunde
 SPIELER_TEMPO_Y = 115  # in die Tiefe langsamer, das wirkt räumlicher
 SPRUNGKRAFT = 620
 
+# --- Waffen und Wurfobjekte (siehe waffen.py) -----------------------------------
+WAFFE_BODEN_ZEIT = 12.0  # so lange liegt eine Waffe am Boden (die letzten 3 s blinkt sie)
+WAFFE_TOD_ZEIT = 8.0  # Waffe eines gestorbenen Spielers: blinkt die ganze Zeit
+GREIF_REICHWEITE = (34, 18)  # |dx|, |dy| zum Aufheben einer Waffe
+DROP_MINDESTABSTAND = 12.0  # Sekunden zwischen zwei Waffen-Drops
+DROP_PITY_ZEIT = 90.0  # so lange ohne Drop, dann steigt die Chance
+DROP_PITY_FAKTOR = 3.0
+
 # --- Tastenbelegung -----------------------------------------------------------
-# Mehrere Tasten pro Aktion sind möglich. Schlag + Tritt gleichzeitig = Spezialangriff.
+# Mehrere Tasten pro Aktion sind möglich. Schlag + Tritt gleichzeitig = Spezialangriff, "greifen" hebt auf und wirft.
 TASTEN_P1 = {
     "links": (pygame.K_a,),
     "rechts": (pygame.K_d,),
@@ -44,6 +52,7 @@ TASTEN_P1 = {
     "tritt": (pygame.K_g,),
     "sprung": (pygame.K_SPACE,),
     "spezial": (pygame.K_r,),
+    "greifen": (pygame.K_e,),
 }
 TASTEN_P2 = {
     "links": (pygame.K_LEFT,),
@@ -54,15 +63,16 @@ TASTEN_P2 = {
     "tritt": (pygame.K_l, pygame.K_KP2),
     "sprung": (pygame.K_o, pygame.K_KP0),
     "spezial": (pygame.K_i, pygame.K_KP3),
+    "greifen": (pygame.K_j, pygame.K_KP_PERIOD),
 }
 # --- Gamepad (Xbox) -----------------------------------------------------------
 # Controller 1 gehört Spieler 1, Controller 2 Spieler 2. Die Tastatur geht immer parallel.
 # Belegung: linker Stick / Steuerkreuz = Bewegen, X = Schlag, B = Tritt, A = Sprung, Y = Spezial,
-#           LB = Schlag, RB = Tritt, Start = Pause, Back = Pause: zurück zum Menü.
+#           LB = Schlag, RB = Greifen/Werfen, Start = Pause, Back = Pause: zurück zum Menü.
 # Alles, was mit Knopf-Nummern zu tun hat, steht hier an einer Stelle.
-GAMEPAD_AKTIONEN = {"x": "schlag", "lb": "schlag", "b": "tritt", "rb": "tritt", "a": "sprung", "y": "spezial"}
-# Welcher Knopf steht beim Hinweis "... drücken"? (LB/RB sind nur Zweitbelegungen)
-GAMEPAD_HINWEIS = {"schlag": "X", "tritt": "B", "sprung": "A", "spezial": "Y"}
+GAMEPAD_AKTIONEN = {"x": "schlag", "lb": "schlag", "b": "tritt", "rb": "greifen", "a": "sprung", "y": "spezial"}
+# Welcher Knopf steht beim Hinweis "... drücken"? (LB ist nur Zweitbelegung von Schlag)
+GAMEPAD_HINWEIS = {"schlag": "X", "tritt": "B", "sprung": "A", "spezial": "Y", "greifen": "RB"}
 
 # Normalfall: SDL kennt den Controller (bei Xbox-Controllern immer). Dann kommen CONTROLLERBUTTONDOWN-Ereignisse mit
 # festen Namen, egal ob USB, Bluetooth, XInput oder HIDAPI. Das ist die sichere Variante.

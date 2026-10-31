@@ -147,9 +147,9 @@ class Steuerung:
         return self.gamepad.knopf(ereignis)
 
     def aktion(self, ereignis):
-        """Welche Aktion löst dieses Ereignis aus? "schlag", "tritt", "sprung", "spezial" oder None."""
+        """Welche Aktion löst dieses Ereignis aus? "schlag", "tritt", "sprung", "spezial", "greifen" oder None."""
         if ereignis.type == pygame.KEYDOWN:
-            for name in ("schlag", "tritt", "sprung", "spezial"):
+            for name in ("schlag", "tritt", "sprung", "spezial", "greifen"):
                 if ereignis.key in self.tasten[name]:
                     return name
         else:

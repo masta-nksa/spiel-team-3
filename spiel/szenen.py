@@ -25,6 +25,7 @@ from kamera import Kamera
 from level import WELLEN, Wellensteuerung
 from objekte import Gegenstand
 from skins import SKINS
+from waffen import Waffenverteiler
 
 
 def ist_weiter(ereignis):
@@ -151,7 +152,7 @@ class MenueSzene(Szene):
 
         # Steuerung
         pad = hat_gamepad(self.spiel)
-        kasten = pygame.Rect(e.BREITE / 2 - 190, 186, 380, 250 if pad else 230)
+        kasten = pygame.Rect(e.BREITE / 2 - 190, 186, 380, 246 if pad else 226)
         schleier = pygame.Surface(kasten.size, pygame.SRCALPHA)
         pygame.draw.rect(schleier, (10, 8, 20, 190), schleier.get_rect(), border_radius=12)
         flaeche.blit(schleier, kasten)
@@ -162,12 +163,13 @@ class MenueSzene(Szene):
             ("", "O Sprung  ·  K+L Spezial", e.SPIELER_FARBEN[2]),
             ("", "(oder Ziffernblock 1 / 2 / 0 / 3)", e.GRAU),
             ("", "Controller: X Schlag · B Tritt · A Sprung", e.GRAU),
+            ("", "Greifen und Werfen: E · J · RB", e.GRAU),
         ]
         if pad:
             zeilen.append(("", "Y Spezial · Stick/Kreuz · Start Pause", e.GRAU))
         zeilen.append(("", "Esc Pause  ·  F1 Hitboxen zeigen", e.GRAU))
         for i, (_, zeile, farbe) in enumerate(zeilen):
-            grafik.text(flaeche, zeile, 24, (kasten.centerx, kasten.top + 22 + i * 30), farbe, umriss=False)
+            grafik.text(flaeche, zeile, 24, (kasten.centerx, kasten.top + 22 + i * 27), farbe, umriss=False)
 
         if int(self.zeit * 2.5) % 2 == 0:
             start = "Enter, F oder A: Start" if pad else "Enter oder F: Start"
@@ -189,6 +191,7 @@ class SpielSzene(Szene):
         self.gegner = []
         self.objekte = self.level.requisiten()
         self.wellen = Wellensteuerung(WELLEN)
+        self.waffen = Waffenverteiler()
 
         self.stopp = 0.0  # Trefferstopp
         self.banner = ""
@@ -339,7 +342,8 @@ class SpielSzene(Szene):
     def kampf(self):
         """Hitbox gegen Hurtbox: das ganze Treffersystem in einer Methode."""
         aktive_spieler = [s for s in self.spieler if not s.ausgeschieden]
-        for angreifer in aktive_spieler + self.gegner:
+        geschosse = [o for o in self.objekte if hasattr(o, "hitbox")]  # Geworfenes trifft wie ein Schlag
+        for angreifer in aktive_spieler + self.gegner + geschosse:
             hitbox = angreifer.hitbox()
             if hitbox is None:
                 continue
@@ -373,6 +377,7 @@ class SpielSzene(Szene):
                         ziel.besiegt = True
                         angreifer.punkte += ziel.punkte_wert
                         self.effekte.text(ziel.x, ziel.y, ziel.hoehe + 20, f"+{ziel.punkte_wert}")
+                        self.waffen.wuerfle(ziel.typ, ziel.x, ziel.y, self)
 
     def auseinanderschieben(self):
         """Körperboxen: stehende Figuren schieben sich sanft auseinander, damit sie nicht verschmelzen."""
@@ -435,6 +440,9 @@ class SpielSzene(Szene):
         for ding in sorted(sichtbar, key=lambda d: (d.sortier_y, d.x)):
             ding.zeichnen(flaeche, self.kamera)
         self.effekte.zeichnen(flaeche, self.kamera)
+        for spieler in self.spieler:
+            if not spieler.ausgeschieden:
+                spieler.zeichne_hinweis(flaeche, self.kamera)
 
         if self.spiel.debug:
             self.zeichne_debug(flaeche, sichtbar)

@@ -10,19 +10,24 @@ gerade kann und welche Pose gezeichnet wird:
   fallen           umgeworfen, fliegt durch die Luft
   liegen           am Boden, unverwundbar
   aufstehen        steht wieder auf
+  greifen          bückt sich und hebt etwas auf (nur Spieler)
   tot              blinkt und verschwindet (Gegner) oder steigt neu ein (Spieler)
 
 Für jeden Zustand gibt es eine Methode mit Unterstrich, z. B. _fallen. update ruft
 die passende Methode über ihren Namen auf. Wer einen neuen Zustand will, schreibt
 einfach eine neue Methode.
 """
+import math
 import random
+
+import pygame
 
 import einstellungen as e
 import grafik
 import posen
 from kampf import ANGRIFFE, SPRUNG_ANGRIFFE, START_ANGRIFFE, Box
 from skins import SKINS
+from waffen import ART_VON_KLASSE, Geschoss, Trageding, WaffeAmBoden
 
 
 def gegen_null(wert, abbau, dt):
@@ -350,7 +355,11 @@ class Kaempfer:
         if self.blitz > 0:
             sx += random.choice((-2, 2))  # zittert beim Treffer
         grafik.zeichne_figur(flaeche, self.skin, self.aktuelle_pose(), sx, sy, self.blick,
-                             self.skala, weiss=self.blitz > 0.06, zeit=self.anim_zeit)
+                             self.skala, weiss=self.blitz > 0.06, zeit=self.anim_zeit, halte=self.halte())
+
+    def halte(self):
+        """Funktion, die etwas in die Hand zeichnet (oder None). Spieler tragen Waffen."""
+        return None
 
 
 class Spieler(Kaempfer):
@@ -368,6 +377,10 @@ class Spieler(Kaempfer):
         self.beste_combo = 0
         self.ausgeschieden = False
         self.seit_taste = {}  # Aktion -> Sekunden seit dem letzten Drücken
+        self.trage = None  # Trageding: Waffe oder schweres Wurfobjekt in den Händen
+        self.greif_ziel = None  # was gerade aufgehoben wird
+        self.hinweis_ziel = None  # worauf die Greifen-Taste gerade passen würde (kleine Taste im Bild)
+        self.wurf_getan = True
 
     @property
     def ist_ziel(self):
@@ -398,12 +411,23 @@ class Spieler(Kaempfer):
                 self.combo = 0
 
         dx, dy = self.steuerung.richtung()
+        self.hinweis_ziel = self.finde_greifbares(welt) if self.kann_handeln else None
         if self.kann_handeln:
             if self.puffer:
                 aktion = self.puffer
                 self.puffer = None
                 if dx:
                     self.blick = dx
+                if aktion == "greifen":
+                    self.greife(welt)
+                    return
+                if self.trage is not None and self.trage.schwer:
+                    if aktion != "sprung":  # mit einer Kiste in den Händen springt man nicht, jeder Angriffsknopf wirft
+                        self.starte_angriff("wurf", welt)
+                    return
+                if self.trage is not None and aktion in ("schlag", "spezial"):
+                    self.starte_angriff("w_homerun" if aktion == "spezial" else "w_schlaeger1", welt)
+                    return
                 if aktion == "sprung":
                     self.vz = e.SPRUNGKRAFT
                     self.vx = dx * e.SPIELER_TEMPO_X * 1.15
@@ -415,8 +439,9 @@ class Spieler(Kaempfer):
                 else:
                     self.starte_angriff(START_ANGRIFFE[aktion], welt)
                 return
-            self.vx = dx * e.SPIELER_TEMPO_X
-            self.vy = dy * e.SPIELER_TEMPO_Y
+            tempo = self.trage.daten.get("tempo", 1.0) if self.trage is not None else 1.0
+            self.vx = dx * e.SPIELER_TEMPO_X * tempo
+            self.vy = dy * e.SPIELER_TEMPO_Y * tempo
             if dx:
                 self.blick = dx
             self.wechsle("gehen" if dx or dy else "stehen")
@@ -425,12 +450,155 @@ class Spieler(Kaempfer):
 
     def treffer_gelandet(self, ziel, angriff, welt):
         super().treffer_gelandet(ziel, angriff, welt)
+        self.zaehle_treffer(ziel, angriff)
+        # Der Schläger nutzt sich bei jedem Treffer ab und bricht irgendwann
+        if self.trage is not None and not self.trage.schwer and angriff.name.startswith("w_"):
+            self.trage.rest -= angriff.haltbarkeit
+            if self.trage.rest <= 0:
+                self.waffe_bricht(welt)
+
+    def wurf_treffer(self, ziel, angriff):
+        """Etwas, das dieser Spieler geworfen hat, hat getroffen."""
+        self.zaehle_treffer(ziel, angriff)
+
+    def zaehle_treffer(self, ziel, angriff):
         if ziel.team != "gegner":
             return
         self.combo += 1
         self.combo_zeit = e.COMBO_ZEIT
         self.beste_combo = max(self.beste_combo, self.combo)
         self.punkte += angriff.schaden * 10 + (self.combo - 1) * 5
+
+    # --- Waffen und Wurfobjekte -----------------------------------------------------
+
+    def finde_greifbares(self, welt):
+        """Was liegt in Reichweite und passt zur Greifen-Taste? Mit einer Kiste in den Händen: nichts."""
+        if (self.trage is not None and self.trage.schwer) or self.z > 10:
+            return None
+        beste, bester_abstand = None, 1e9
+        for objekt in welt.objekte:
+            if objekt.entfernen:
+                continue
+            dx, dy = abs(objekt.x - self.x), abs(objekt.y - self.y)
+            if isinstance(objekt, WaffeAmBoden):
+                nah = dx < e.GREIF_REICHWEITE[0] and dy < e.GREIF_REICHWEITE[1] and objekt.z < 30
+            elif self.trage is None and type(objekt) in ART_VON_KLASSE:
+                nah = dx < objekt.breite / 2 + 30 and dy < objekt.tiefe + 20
+            else:
+                continue
+            if nah and dx + 2 * dy < bester_abstand:
+                beste, bester_abstand = objekt, dx + 2 * dy
+        return beste
+
+    def greife(self, welt):
+        """Greifen-Taste: aufheben (oder tauschen), sonst das Getragene werfen."""
+        ziel = self.finde_greifbares(welt)
+        if ziel is None:
+            if self.trage is not None:
+                self.starte_angriff("wurf", welt)
+            return
+        self.greif_ziel = ziel
+        self.vx = self.vy = 0.0
+        self.wechsle("greifen")
+        welt.ton.spiele("greifen")
+
+    def _greifen(self, dt, welt):
+        self.vx = self.vy = 0.0
+        if self.greif_ziel is not None and self.zustand_zeit >= 0.09:
+            ziel, self.greif_ziel = self.greif_ziel, None
+            self.nimm_auf(ziel, welt)
+        if self.zustand_zeit >= 0.18:
+            self.wechsle("stehen")
+
+    def nimm_auf(self, ziel, welt):
+        if ziel.entfernen:
+            return
+        if self.trage is not None:
+            self.lege_ab(welt)  # Tauschen: die alte Waffe fällt vor die Füsse
+        ziel.entfernen = True
+        if isinstance(ziel, WaffeAmBoden):
+            self.trage = Trageding(ziel.art, ziel.rest)
+        else:
+            self.trage = Trageding(ART_VON_KLASSE[type(ziel)], prop=ziel)
+
+    def lege_ab(self, welt, tod=False):
+        """Das Getragene fällt auf den Boden. Gestorbene lassen die Waffe blinkend liegen."""
+        ding, self.trage = self.trage, None
+        if ding is None:
+            return
+        if ding.schwer:
+            prop = ding.prop
+            prop.entfernen = False
+            prop.x = max(welt.kamera.x + 30, min(welt.kamera.x + e.BREITE - 30, self.x + self.blick * 34))
+            prop.y = self.y
+            welt.objekte.append(prop)
+        elif tod:
+            welt.objekte.append(WaffeAmBoden(ding.art, ding.rest, self.x, self.y, e.WAFFE_TOD_ZEIT, blinkt=True))
+        else:
+            welt.objekte.append(WaffeAmBoden(ding.art, ding.rest, self.x, self.y))
+
+    def waffe_bricht(self, welt):
+        welt.effekte.splitter(self.x + self.blick * 40, self.y, 60, [(178, 126, 68), (120, 80, 40), (225, 185, 120)], 16)
+        welt.effekte.text(self.x, self.y, self.hoehe + 30, "KAPUTT!", e.ROT)
+        welt.ton.spiele("knack")
+        welt.wackeln(3)
+        self.trage = None
+        self.puffer = None
+
+    def werfe(self, welt):
+        ding, self.trage = self.trage, None
+        if ding is None:
+            return
+        rest = ding.rest - ding.daten.get("wurf_kosten", 0)
+        geschoss = Geschoss(self, ding, self.x + self.blick * 18, self.y, 70, self.blick, rest)
+        geschoss.vy = self.steuerung.richtung()[1] * 60
+        welt.objekte.append(geschoss)
+        welt.ton.spiele("wurf")
+
+    def starte_angriff(self, name, welt):
+        if name.startswith("w_") and (self.trage is None or self.trage.schwer):
+            name = "schlag1"  # die Waffe ist inzwischen weg (zerbrochen): mit blossen Fäusten weiter
+        self.wurf_getan = False
+        super().starte_angriff(name, welt)
+
+    def _angriff(self, dt, welt):
+        a = self.angriff
+        if a.wurf and not self.wurf_getan and self.angriff_zeit + dt >= a.anlauf:
+            self.wurf_getan = True
+            self.werfe(welt)
+        super()._angriff(dt, welt)
+
+    def nimm_treffer(self, angreifer, angriff, welt):
+        umgeworfen = super().nimm_treffer(angreifer, angriff, welt)
+        self.greif_ziel = None
+        # Schwere Dinge lässt man bei jedem Treffer fallen. Stirbt man, fällt auch die Waffe.
+        if self.trage is not None and (self.trage.schwer or self.hp <= 0):
+            self.lege_ab(welt, tod=self.hp <= 0)
+        return umgeworfen
+
+    def aktuelle_pose(self):
+        if self.zustand == "greifen":
+            return posen.buecken(self.zustand_zeit / 0.18)
+        if self.trage is not None and self.trage.schwer and self.zustand in ("stehen", "gehen"):
+            basis = posen.gehen(self.anim_zeit) if self.zustand == "gehen" else posen.stehen(self.anim_zeit)
+            return posen.tragen(basis)
+        return super().aktuelle_pose()
+
+    def halte(self):
+        return self.trage.zeichne_in_hand if self.trage is not None else None
+
+    def zeichne_hinweis(self, flaeche, kamera):
+        """Kleine Taste über dem Ding, das man mit Greifen aufheben würde."""
+        ziel = self.hinweis_ziel
+        if ziel is None or ziel.entfernen or not self.ist_ziel:
+            return
+        taste = self.steuerung.tastenname("greifen")
+        sx, sy = kamera.zu_bild(ziel.x, ziel.y, ziel.hoehe + 26 + 3 * math.sin(self.anim_zeit * 6))
+        rahmen = pygame.Rect(0, 0, max(26, 12 * len(taste) + 12), 24)
+        rahmen.center = (round(sx), round(sy))
+        pygame.draw.rect(flaeche, (20, 18, 30), rahmen, border_radius=6)
+        pygame.draw.rect(flaeche, self.farbe, rahmen, 2, border_radius=6)
+        grafik.text(flaeche, taste, 20, rahmen.center, e.TEXT, umriss=False)
 
     def _tot(self, dt, welt):
         if self.zustand_zeit < 1.6:

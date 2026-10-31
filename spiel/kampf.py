@@ -66,6 +66,8 @@ class Angriff:
     folge_tritt: str = None
     kosten: int = 0  # eigene Lebenspunkte (Spezialangriff)
     ton: str = "schlag"
+    wurf: bool = False  # in der aktiven Phase fliegt das getragene Ding los (kein Treffer an der Hand)
+    haltbarkeit: int = 1  # so viel verliert die Waffe in der Hand bei jedem Treffer
 
     @property
     def dauer(self):
@@ -94,6 +96,15 @@ ANGRIFFE = {a.name: a for a in [
             rueckstoss=140, starre=0.4, in_der_luft=True),
     Angriff("wirbel", "wirbel", 0.06, 0.30, 0.22, 10, (-58, 58), (24, 80),
             rueckstoss=280, wirft_um=True, rundum=True, kosten=4, ton="hart"),
+    # --- Spieler: Baseballschläger (siehe waffen.py) ---
+    Angriff("w_schlaeger1", "schwung", 0.10, 0.08, 0.20, 12, (14, 78), (40, 92),
+            rueckstoss=140, starre=0.38, folge_schlag="w_schlaeger2", ton="hart"),
+    Angriff("w_schlaeger2", "homerun", 0.14, 0.09, 0.30, 18, (12, 82), (36, 96),
+            rueckstoss=380, wirft_um=True, vorschub=70, ton="hart"),
+    Angriff("w_homerun", "homerun", 0.14, 0.09, 0.30, 18, (12, 82), (36, 96),
+            rueckstoss=380, wirft_um=True, vorschub=70, haltbarkeit=2, ton="hart"),
+    # Wurf: die Hitbox hat keine Ausdehnung, getroffen wird erst vom fliegenden Geschoss
+    Angriff("wurf", "wurf", 0.12, 0.02, 0.22, 0, (0, 0), (0, 0), wurf=True),
     # --- Gegner: länger ausholen, damit man reagieren kann ---
     Angriff("g_schlag", "gerade", 0.30, 0.08, 0.30, 7, (10, 50), (50, 76),
             rueckstoss=70, starre=0.30, folge_schlag="g_haken"),

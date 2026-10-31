@@ -8,6 +8,7 @@ import pygame
 
 import einstellungen as e
 import grafik
+import waffen
 
 PANEL_BREITE = 320
 PANEL_HOEHE = 66
@@ -84,8 +85,25 @@ class HUD:
             pygame.draw.circle(flaeche, e.ROT, (hx - 3, hy - 2), 4)
             pygame.draw.circle(flaeche, e.ROT, (hx + 3, hy - 2), 4)
             pygame.draw.polygon(flaeche, e.ROT, [(hx - 7, hy - 1), (hx + 7, hy - 1), (hx, hy + 6)])
+        if spieler.trage is not None:
+            self.zeichne_waffe(flaeche, rahmen, spieler)
         if spieler.combo >= 2:
             grafik.text(flaeche, f"{spieler.combo} HITS!", 30, (rahmen.centerx, rahmen.bottom + 16), e.GELB)
+
+    def zeichne_waffe(self, flaeche, rahmen, spieler):
+        """Was der Spieler trägt: Symbol und bei Waffen ein Haltbarkeitsbalken (blinkt, wenn sie fast kaputt ist)."""
+        ding = spieler.trage
+        symbol = pygame.Rect(rahmen.left + 109, rahmen.top + 47, 28, 16)
+        waffen.zeichne_symbol(flaeche, ding.art, symbol)
+        if ding.schwer:
+            grafik.text(flaeche, f"{ding.name}: werfen", 18, (symbol.right + 8, symbol.centery), e.TEXT, "midleft", umriss=False)
+            return
+        balken = pygame.Rect(symbol.right + 8, symbol.top + 3, 100, 10)
+        anteil = ding.anteil
+        if anteil < 0.25 and int(self.zeit * 6) % 2:
+            zeichne_balken(flaeche, balken, anteil, anteil, (255, 255, 255))
+        else:
+            zeichne_balken(flaeche, balken, anteil, anteil)
 
     def zeichne_beitreten(self, flaeche, rahmen, welt, nummer):
         self.panel(flaeche, rahmen, e.GRAU)

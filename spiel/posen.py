@@ -94,6 +94,16 @@ def jubeln(t):
     return pose(**{**JUBELN, "tief": 6 * hops, "vs": 165 - 20 * hops})
 
 
+def buecken(t):
+    """Etwas vom Boden aufheben. t = 0..1."""
+    return pose(neigung=38, tief=10, vs=104, ve=14, hs=96, he=16, vh=34, vk=44, hh=-22, hk=30)
+
+
+def tragen(basis):
+    """Etwas Schweres mit beiden Händen über dem Kopf tragen. basis = Geh- oder Stehpose."""
+    return {**basis, "vs": 172, "ve": 6, "hs": 168, "he": 8, "neigung": basis["neigung"] - 4}
+
+
 # --- Angriffsposen: Ausholen und Treffen -------------------------------------------
 
 ANGRIFFSPOSEN = {
@@ -139,6 +149,21 @@ ANGRIFFSPOSEN = {
     "wirbel": (
         pose(vh=40, vk=60, tief=8, neigung=10),
         pose(vh=95, vk=0, hh=-10, hk=10, neigung=-24, vs=-40, ve=40, hs=60, he=40),
+    ),
+    # Baseballschläger: beidhändig von hinten oben nach vorne unten
+    "schwung": (
+        pose(vs=165, ve=-30, hs=160, he=-25, neigung=-14, kopf=-6, tief=1),
+        pose(vs=88, ve=6, hs=82, he=10, neigung=24, tief=8, vh=30, vk=22, hh=-34, hk=20),
+    ),
+    # Homerun: weit hinten ausholen, ganzer Körper dreht mit
+    "homerun": (
+        pose(vs=-35, ve=60, hs=-40, he=55, neigung=-6, tief=8, vh=20, hh=-26, vk=20, hk=24),
+        pose(vs=98, ve=-4, hs=92, he=0, neigung=30, tief=10, vh=40, vk=30, hh=-40, hk=26),
+    ),
+    # Werfen: Arme über den Kopf zurück, dann nach vorne
+    "wurf": (
+        pose(vs=168, ve=36, hs=164, he=40, neigung=-12, tief=2),
+        pose(vs=100, ve=-14, hs=96, he=-10, neigung=22, tief=6, vh=26, vk=16, hh=-30, hk=14),
     ),
     # Hammerschlag von oben (Brocken)
     "hammer": (
