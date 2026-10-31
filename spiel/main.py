@@ -8,7 +8,7 @@ import sys
 import pygame
 
 import einstellungen as e
-from eingabe import Steuerung, gamepad_ereignis
+from eingabe import Steuerung, gamepad_ereignis, gamepads_suchen
 from level import Level
 from szenen import MenueSzene
 from ton import Ton
@@ -49,6 +49,8 @@ class Spiel:
         self.rekord = 0
         self.debug = False  # F1: Hitboxen anzeigen
         self.steuerungen = [Steuerung(1, e.TASTEN_P1), Steuerung(2, e.TASTEN_P2)]
+        # Schon beim Start angeschlossene Controller zur Sicherheit selbst suchen (nicht auf Ereignisse verlassen)
+        gamepads_suchen(self.steuerungen)
         self.ton = Ton()
         self.level = Level()  # wird nur einmal gemalt und dann für jede Runde wiederverwendet
         self.szene = MenueSzene(self)
@@ -69,7 +71,12 @@ class Spiel:
                 if ereignis.type == pygame.QUIT:
                     self.beenden()
                 elif ereignis.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
-                    gamepad_ereignis(self.steuerungen, ereignis)
+                    verloren = gamepad_ereignis(self.steuerungen, ereignis)
+                    if verloren is not None:
+                        self.szene.gamepad_verloren(verloren)
+                elif ereignis.type in (pygame.CONTROLLERDEVICEADDED, pygame.CONTROLLERDEVICEREMOVED,
+                                       pygame.CONTROLLERDEVICEREMAPPED):
+                    pass  # doppelt gemeldet: die Joystick-Ereignisse genügen
                 else:
                     self.szene.ereignis(ereignis)
 

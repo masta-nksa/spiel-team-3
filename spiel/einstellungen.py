@@ -55,8 +55,40 @@ TASTEN_P2 = {
     "sprung": (pygame.K_o, pygame.K_KP0),
     "spezial": (pygame.K_i, pygame.K_KP3),
 }
-# Gamepad (Xbox-Belegung): X = Schlag, B = Tritt, A = Sprung, Y = Spezial
-GAMEPAD_KNOEPFE = {2: "schlag", 1: "tritt", 0: "sprung", 3: "spezial"}
+# --- Gamepad (Xbox) -----------------------------------------------------------
+# Controller 1 gehört Spieler 1, Controller 2 Spieler 2. Die Tastatur geht immer parallel.
+# Belegung: linker Stick / Steuerkreuz = Bewegen, X = Schlag, B = Tritt, A = Sprung, Y = Spezial,
+#           LB = Schlag, RB = Tritt, Start = Pause, Back = Pause: zurück zum Menü.
+# Alles, was mit Knopf-Nummern zu tun hat, steht hier an einer Stelle.
+GAMEPAD_AKTIONEN = {"x": "schlag", "lb": "schlag", "b": "tritt", "rb": "tritt", "a": "sprung", "y": "spezial"}
+# Welcher Knopf steht beim Hinweis "... drücken"? (LB/RB sind nur Zweitbelegungen)
+GAMEPAD_HINWEIS = {"schlag": "X", "tritt": "B", "sprung": "A", "spezial": "Y"}
+
+# Normalfall: SDL kennt den Controller (bei Xbox-Controllern immer). Dann kommen CONTROLLERBUTTONDOWN-Ereignisse mit
+# festen Namen, egal ob USB, Bluetooth, XInput oder HIDAPI. Das ist die sichere Variante.
+CONTROLLER_KNOEPFE = {
+    pygame.CONTROLLER_BUTTON_A: "a",
+    pygame.CONTROLLER_BUTTON_B: "b",
+    pygame.CONTROLLER_BUTTON_X: "x",
+    pygame.CONTROLLER_BUTTON_Y: "y",
+    pygame.CONTROLLER_BUTTON_LEFTSHOULDER: "lb",
+    pygame.CONTROLLER_BUTTON_RIGHTSHOULDER: "rb",
+    pygame.CONTROLLER_BUTTON_BACK: "back",
+    pygame.CONTROLLER_BUTTON_START: "start",
+}
+# Notlösung (z. B. im Browser, wo es die Controller-Schnittstelle nicht gibt): rohe Joystick-Nummern.
+# Windows (XInput/WGI) und Linux (xpad): A=0 B=1 X=2 Y=3 LB=4 RB=5 Back=6 Start=7, Stick = Achse 0/1, Kreuz = Hat 0.
+JOY_KNOEPFE = {0: "a", 1: "b", 2: "x", 3: "y", 4: "lb", 5: "rb", 6: "back", 7: "start"}
+# Browser (Gamepad-API "standard"): Back=8, Start=9, das Steuerkreuz sind die Knöpfe 12-15.
+JOY_KNOEPFE_BROWSER = {0: "a", 1: "b", 2: "x", 3: "y", 4: "lb", 5: "rb", 8: "back", 9: "start"}
+JOY_KREUZ_BROWSER = {"hoch": 12, "runter": 13, "links": 14, "rechts": 15}
+
+STICK_EIN = 0.5  # ab so viel Ausschlag (Länge des Sticks) zählt eine Richtung ...
+STICK_AUS = 0.35  # ... und erst darunter hört sie wieder auf. Der Abstand verhindert Zittern.
+STICK_ACHSE_EIN = 0.42  # Anteil einer Achse am Ausschlag, ab dem sie zählt (Diagonalen)
+STICK_ACHSE_AUS = 0.30
+RUMBLE_TREFFER = (0.35, 0.35, 120)  # tiefer Motor, hoher Motor, Millisekunden
+RUMBLE_UMGEWORFEN = (0.8, 0.6, 260)
 
 # --- Farben als (Rot, Grün, Blau) -----------------------------------------------
 HINTERGRUND = (14, 12, 28)

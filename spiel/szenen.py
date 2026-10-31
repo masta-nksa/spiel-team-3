@@ -34,6 +34,19 @@ def ist_weiter(ereignis):
     return ereignis.type == pygame.MOUSEBUTTONDOWN
 
 
+def irgendein_knopf(steuerungen, ereignis):
+    """Name des Gamepad-Knopfes ("a", "b", "start" ...), wenn ein Ereignis von einem Controller kommt, sonst None."""
+    for steuerung in steuerungen:
+        knopf = steuerung.knopf(ereignis)
+        if knopf:
+            return knopf
+    return None
+
+
+def hat_gamepad(spiel):
+    return any(s.gamepad is not None for s in spiel.steuerungen)
+
+
 def abdunkeln(flaeche, alpha=150):
     schleier = pygame.Surface(flaeche.get_size(), pygame.SRCALPHA)
     schleier.fill((8, 6, 18, alpha))
@@ -53,6 +66,9 @@ class Szene:
 
     def ereignis(self, ereignis):
         """Wird für jede Taste, jeden Klick usw. einmal aufgerufen."""
+
+    def gamepad_verloren(self, nummer):
+        """Der Controller von Spieler <nummer> wurde getrennt (z. B. Bluetooth-Abbruch)."""
 
     def aktualisieren(self, dt):
         """Spiellogik: Bewegen, Kollisionen, Zeitgeber. dt = Sekunden seit dem letzten Bild."""
@@ -81,11 +97,18 @@ class MenueSzene(Szene):
 
     def ereignis(self, ereignis):
         p1, p2 = self.spiel.steuerungen
-        if p2.aktion(ereignis) == "schlag":
+        k1, k2 = p1.knopf(ereignis), p2.knopf(ereignis)
+        taste = ereignis.type == pygame.KEYDOWN
+        # 2P ein/aus: K, A/X auf Controller 2, oder Y / LB / RB auf Controller 1
+        if (taste and p2.aktion(ereignis) == "schlag") or k2 in ("a", "x", "y") or k1 in ("y", "lb", "rb"):
             self.zwei_spieler = not self.zwei_spieler
             self.spiel.ton.spiele("einsammeln")
             return
-        if ist_weiter(ereignis) or p1.aktion(ereignis) == "schlag":
+        if k2 == "start":
+            self.zwei_spieler = True  # Start auf Controller 2: los, mit beiden
+            self.spiel.wechsle_zu(SpielSzene(self.spiel, True))
+            return
+        if ist_weiter(ereignis) or (taste and p1.aktion(ereignis) == "schlag") or k1 in ("a", "x", "start"):
             self.spiel.wechsle_zu(SpielSzene(self.spiel, self.zwei_spieler))
 
     def aktualisieren(self, dt):
@@ -114,15 +137,21 @@ class MenueSzene(Szene):
             if aktiv:
                 grafik.zeichne_spielerring(flaeche, x, boden, 120, e.SPIELER_FARBEN[nummer], blick)
             grafik.zeichne_figur(flaeche, skin, pose, x, boden, blick, 2.2, zeit=self.zeit)
-            status = "BEREIT" if aktiv else "K drücken"
+            steuerung = self.spiel.steuerungen[nummer - 1]
+            status = "BEREIT" if aktiv else f"{steuerung.tastenname('schlag')} drücken"
             farbe = e.SPIELER_FARBEN[nummer] if aktiv else e.GRAU
             grafik.text(flaeche, f"{nummer}P {skin['name']}", 34, (x, boden + 30), farbe)
+            if steuerung.gamepad is not None:
+                grafik.text(flaeche, "Controller verbunden", 20, (x, boden + 82), e.GRUEN, umriss=False)
+            else:
+                grafik.text(flaeche, "Tastatur", 20, (x, boden + 82), e.GRAU, umriss=False)
             if not aktiv and int(self.zeit * 2) % 2:
                 continue
             grafik.text(flaeche, status, 24, (x, boden + 56), farbe)
 
         # Steuerung
-        kasten = pygame.Rect(e.BREITE / 2 - 175, 190, 350, 230)
+        pad = hat_gamepad(self.spiel)
+        kasten = pygame.Rect(e.BREITE / 2 - 190, 186, 380, 250 if pad else 230)
         schleier = pygame.Surface(kasten.size, pygame.SRCALPHA)
         pygame.draw.rect(schleier, (10, 8, 20, 190), schleier.get_rect(), border_radius=12)
         flaeche.blit(schleier, kasten)
@@ -132,15 +161,20 @@ class MenueSzene(Szene):
             ("2P", "Pfeile  ·  K Schlag  ·  L Tritt", e.SPIELER_FARBEN[2]),
             ("", "O Sprung  ·  K+L Spezial", e.SPIELER_FARBEN[2]),
             ("", "(oder Ziffernblock 1 / 2 / 0 / 3)", e.GRAU),
-            ("", "Gamepad: X Schlag · B Tritt · A Sprung", e.GRAU),
-            ("", "Esc Pause  ·  F1 Hitboxen zeigen", e.GRAU),
+            ("", "Controller: X Schlag · B Tritt · A Sprung", e.GRAU),
         ]
+        if pad:
+            zeilen.append(("", "Y Spezial · Stick/Kreuz · Start Pause", e.GRAU))
+        zeilen.append(("", "Esc Pause  ·  F1 Hitboxen zeigen", e.GRAU))
         for i, (_, zeile, farbe) in enumerate(zeilen):
             grafik.text(flaeche, zeile, 24, (kasten.centerx, kasten.top + 22 + i * 30), farbe, umriss=False)
 
         if int(self.zeit * 2.5) % 2 == 0:
-            grafik.text(flaeche, "Enter oder F: Start", 38, (e.BREITE / 2, 470), e.GELB)
-        grafik.text(flaeche, f"Rekord: {self.spiel.rekord}", 24, (e.BREITE / 2, 510), e.GRAU)
+            start = "Enter, F oder A: Start" if pad else "Enter oder F: Start"
+            grafik.text(flaeche, start, 38, (e.BREITE / 2, 462), e.GELB)
+        if pad:
+            grafik.text(flaeche, "2P dazu: K oder A auf Controller 2  ·  Y: 1P/2P wechseln", 22, (e.BREITE / 2, 492), e.TEXT, umriss=False)
+        grafik.text(flaeche, f"Rekord: {self.spiel.rekord}", 24, (e.BREITE / 2, 518), e.GRAU)
 
 
 class SpielSzene(Szene):
@@ -163,6 +197,7 @@ class SpielSzene(Szene):
         self.zuletzt_getroffen = None
         self.zuletzt_getroffen_zeit = 0.0
         self.pausiert = False
+        self.pause_grund = ""
         self.sieg_zeit = None
         self.verloren_zeit = None
         self.spielzeit = 0.0
@@ -216,9 +251,17 @@ class SpielSzene(Szene):
             if ereignis.key == pygame.K_F1:
                 self.spiel.debug = not self.spiel.debug
                 return
+        knopf = irgendein_knopf(self.spiel.steuerungen, ereignis)
+        if knopf == "start":
+            self.pausiert = not self.pausiert
+            self.pause_grund = ""
+            return
         if self.pausiert:
-            if ist_weiter(ereignis):
+            if knopf in ("b", "back"):
+                self.spiel.wechsle_zu(MenueSzene(self.spiel))
+            elif knopf == "a" or ist_weiter(ereignis):
                 self.pausiert = False
+                self.pause_grund = ""
             return
 
         for nummer, steuerung in enumerate(self.spiel.steuerungen, start=1):
@@ -233,6 +276,14 @@ class SpielSzene(Szene):
                     self.zeige_banner(f"{nummer}P STEIGT EIN!")
             elif not spieler.ausgeschieden:
                 spieler.taste(aktion)
+
+    def gamepad_verloren(self, nummer):
+        """Controller getrennt: wer gerade mitspielt, wird automatisch pausiert, damit nichts passiert."""
+        spieler = self.spieler_nummer(nummer)
+        if spieler is None or spieler.ausgeschieden or self.sieg_zeit is not None or self.verloren_zeit is not None:
+            return
+        self.pausiert = True
+        self.pause_grund = f"Controller {nummer} getrennt"
 
     # --- Spiellogik ---------------------------------------------------------------
 
@@ -306,6 +357,9 @@ class SpielSzene(Szene):
                 angriff = angreifer.angriff
                 x, y, z = hitbox.schnitt_mitte(hurtbox)
                 umgeworfen = ziel.nimm_treffer(angreifer, angriff, self)
+                steuerung = getattr(ziel, "steuerung", None)
+                if steuerung is not None:  # getroffener Spieler: Controller rüttelt kurz
+                    steuerung.rumble(e.RUMBLE_UMGEWORFEN if umgeworfen else e.RUMBLE_TREFFER)
                 angreifer.treffer_gelandet(ziel, angriff, self)
 
                 self.effekte.funke(x, y, z, gross=umgeworfen)
@@ -401,7 +455,12 @@ class SpielSzene(Szene):
         if self.pausiert:
             abdunkeln(flaeche, 160)
             zeichne_titel(flaeche, "PAUSE", 200)
-            grafik.text(flaeche, "Enter: weiter   ·   Esc: zum Menü", 32, (e.BREITE / 2, 290))
+            if hat_gamepad(self.spiel):
+                grafik.text(flaeche, "Enter / Start: weiter   ·   Esc / B: zum Menü", 32, (e.BREITE / 2, 290))
+            else:
+                grafik.text(flaeche, "Enter: weiter   ·   Esc: zum Menü", 32, (e.BREITE / 2, 290))
+            if self.pause_grund:
+                grafik.text(flaeche, self.pause_grund, 28, (e.BREITE / 2, 335), e.ROT)
 
     def zeichne_debug(self, flaeche, sichtbar):
         """F1: Körperboxen (gelb), Hurtboxen (blau) und Hitboxen (rot) anzeigen."""
@@ -451,7 +510,9 @@ class ErgebnisSzene(Szene):
         spiel.rekord = max(spiel.rekord, bester)
 
     def ereignis(self, ereignis):
-        if self.wartezeit <= 0 and (ist_weiter(ereignis) or self.spiel.steuerungen[0].aktion(ereignis) == "schlag"):
+        knopf = irgendein_knopf(self.spiel.steuerungen, ereignis)
+        if self.wartezeit <= 0 and (ist_weiter(ereignis) or knopf in ("a", "start")
+                                    or self.spiel.steuerungen[0].aktion(ereignis) == "schlag"):
             self.spiel.wechsle_zu(MenueSzene(self.spiel))
 
     def aktualisieren(self, dt):
@@ -485,4 +546,5 @@ class ErgebnisSzene(Szene):
             zeile += "  NEU!"
         grafik.text(flaeche, zeile, 28, (e.BREITE / 2, 468), e.GELB if self.neuer_rekord else e.TEXT)
         if self.wartezeit <= 0 and int(self.zeit * 2.5) % 2 == 0:
-            grafik.text(flaeche, "Enter: zurück zum Menü", 32, (e.BREITE / 2, 505), e.GRAU)
+            hinweis = "Enter / A: zurück zum Menü" if hat_gamepad(self.spiel) else "Enter: zurück zum Menü"
+            grafik.text(flaeche, hinweis, 32, (e.BREITE / 2, 505), e.GRAU)

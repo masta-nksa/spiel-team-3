@@ -10,19 +10,29 @@ Das Spiel läuft danach unter `https://masta-nksa.github.io/<name-des-repos>/`.
 
 ## Steuerung
 
-| | 1P Kai (blau) | 2P Ria (rot) | Gamepad |
+| | 1P Kai (blau) | 2P Ria (rot) | Xbox-Controller |
 |---|---|---|---|
-| Bewegen | W A S D | Pfeiltasten | Stick / Steuerkreuz |
-| Schlag | F | K oder Ziffernblock 1 | X |
-| Tritt | G | L oder Ziffernblock 2 | B |
+| Bewegen | W A S D | Pfeiltasten | linker Stick oder Steuerkreuz |
+| Schlag | F | K oder Ziffernblock 1 | X (oder LB) |
+| Tritt | G | L oder Ziffernblock 2 | B (oder RB) |
 | Sprung | Leertaste | O oder Ziffernblock 0 | A |
 | Spezial (Wirbeltritt) | F+G gleichzeitig oder R | K+L gleichzeitig oder I | Y |
+
+### Mit Controllern spielen
+
+- **Zuordnung:** Der zuerst gefundene Controller steuert **1P Kai**, der zweite **2P Ria**. Ist nur einer da, gehört er 1P, und 2P bleibt auf der Tastatur. Die Tastatur funktioniert immer parallel.
+- **Bluetooth (Windows):** Zuerst beide Controller im Windows-Bluetooth-Menü koppeln (Einstellungen → Bluetooth & Geräte → Gerät hinzufügen), dann das Spiel starten. Im Menü steht pro Spieler "Controller verbunden" oder "Tastatur".
+- **Zwischendurch anstecken:** Ein neu verbundener Controller bekommt den freien Platz. Bricht die Verbindung ab, pausiert das Spiel, und nach dem Wiederverbinden geht es mit Start weiter.
+- **Menü:** A, X oder Start startet. **2P dazu:** A auf Controller 2 (oder K), mit Start auf Controller 2 geht es gleich zu zweit los. Y/LB/RB auf Controller 1 schaltet zwischen 1P und 2P um.
+- **Im Spiel:** 2P steigt mit X auf Controller 2 ein. **Start** = Pause und weiter, in der Pause **B** oder **Back** = zurück zum Menü.
+- **Ergebnis:** A oder Start = zurück zum Menü.
+- Bei einem Treffer rüttelt der Controller kurz (wenn er das kann).
 
 - **Combos:** Wer trifft und sofort wieder drückt, verkettet die Angriffe:
   Schlag → Schlag → Aufwärtshaken, Schlag → Schlag → Tritt, Tritt → Drehtritt.
 - **Sprungangriffe:** in der Luft Schlag oder Tritt.
 - **Spezial:** trifft vorne und hinten, kostet aber 4 eigene Lebenspunkte.
-- **Mitspielen:** 2P kann im Menü oder jederzeit im Spiel mit **K** einsteigen.
+- **Mitspielen:** 2P kann im Menü oder jederzeit im Spiel mit **K** (Controller 2: **X**) einsteigen.
 - **Esc** Pause (nochmals Esc: zum Menü), **F1** zeigt Körper-, Hurt- und Hitboxen und den KI-Zustand der Gegner.
 - Kisten, Fässer und Mülltonnen kann man zerschlagen. Darin: Hähnchen (+40 HP), Äpfel (+15 HP), Geld (+1000 Punkte).
 
@@ -83,7 +93,7 @@ mit `Ctrl+Shift+R` neu laden oder die Seite in einem privaten Fenster öffnen.
 | `spiel/kamera.py` | scrollende Kamera, die beide Spieler im Bild hält |
 | `spiel/hud.py` | Lebensbalken, Punkte, Combo-Zähler, Boss-Balken |
 | `spiel/effekte.py` | Trefferfunken, Staub, Splitter, schwebender Text |
-| `spiel/eingabe.py` | Tastatur und Gamepad → Aktionen («schlag», «tritt» …) |
+| `spiel/eingabe.py` | Tastatur und Gamepads (Zuordnung, Hot-Plug) → Aktionen («schlag», «tritt» …) |
 | `spiel/ton.py` | Töne, die aus Sinus und Rauschen berechnet werden |
 | `tutorial/` | Grundlagen-Tutorial der Vorlage (Spielschleife, Klassen, Vererbung) |
 | `.github/workflows/online-stellen.yml` | baut das Spiel und stellt es online |
